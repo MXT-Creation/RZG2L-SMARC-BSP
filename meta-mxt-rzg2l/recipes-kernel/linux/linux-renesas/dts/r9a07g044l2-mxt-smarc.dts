@@ -61,8 +61,7 @@
 };
 
 &ov5645 {
-	enable-gpios = <&pinctrl RZG2L_GPIO(10, 0) GPIO_ACTIVE_LOW>;
-	reset-gpios = <&pinctrl RZG2L_GPIO(14, 1) GPIO_ACTIVE_LOW>;
+	status = "disabled";
 };
 
 &adv7535 {
