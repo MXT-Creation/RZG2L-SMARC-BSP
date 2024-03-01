@@ -13,6 +13,20 @@
 	aliases {
 		i2c2 = &i2c2;
 	};
+
+	hdmi-out {
+		compatible = "hdmi-connector";
+		ddc-i2c-bus = <&i2c1>;
+		type = "a";
+
+		port {
+			hdmi_con_out: endpoint {
+				remote-endpoint = <&dsi_hdmi_bridge_out>;
+			};
+		};
+	};
+
+	/delete-node/ sound_card;
 };
 
 &pinctrl {
@@ -64,8 +78,51 @@
 	status = "disabled";
 };
 
-&adv7535 {
-	interrupts = <RZG2L_GPIO(1, 0) IRQ_TYPE_EDGE_FALLING>;
+&ssi1 {
+	status = "disabled";
+	/delete-node/ ports;
+};
+
+&dsi0 {
+	ports {
+		port@1 {
+			reg = <1>;
+			dsi0_out: endpoint {
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&dsi_hdmi_bridge_in>;
+			};
+		};
+	};
+};
+
+&i2c1 {
+	/delete-node/ hdmi@3d;
+
+	dsi_hdmi_bridge: dsihdmi@48 {
+		compatible = "lontium,lt8912b";
+		reg = <0x48>;
+		reset-gpios = <&pinctrl RZG2L_GPIO(11, 0) GPIO_ACTIVE_LOW>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				dsi_hdmi_bridge_in: endpoint@0 {
+					data-lanes = <0 1 2 3>;
+					remote-endpoint = <&dsi0_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				dsi_hdmi_bridge_out: endpoint@1 {
+					remote-endpoint = <&hdmi_con_out>;
+				};
+			};
+		};
+	};
 };
 
 &eth0 {
