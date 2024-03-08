@@ -14,6 +14,7 @@ SRC_URI_append +=  "\
 	file://patches/0001-drm-bridge-Introduce-LT8912B-DSI-to-HDMI-bridge.patch \
 	file://patches/0002-drm-bridge-lt8912b-fix-incorrect-handling-of-of_-ret.patch \
 	file://patches/0003-drm-bridge-lt8912b-fix-corrupted-image-output.patch \
+	file://patches/0004-invert-pn-in-lontium-driver-for-this-design.patch \
 "
 
 do_compile_prepend() {

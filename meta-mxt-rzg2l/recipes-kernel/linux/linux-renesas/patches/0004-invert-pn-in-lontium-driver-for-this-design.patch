@@ -1,0 +1,13 @@
+diff --git a/drivers/gpu/drm/bridge/lontium-lt8912b.c b/drivers/gpu/drm/bridge/lontium-lt8912b.c
+index c422f8310..5c3e99d80 100644
+--- a/drivers/gpu/drm/bridge/lontium-lt8912b.c
++++ b/drivers/gpu/drm/bridge/lontium-lt8912b.c
+@@ -78,7 +78,7 @@ static int lt8912_write_init_config(struct lt8912 *lt)
+ 		{0x5a, 0x02},
+ 
+ 		/*MIPI Analog*/
+-		{0x3e, 0xd6},
++		{0x3e, 0xf6},
+ 		{0x3f, 0xd4},
+ 		{0x41, 0x3c},
+ 		{0xB2, 0x00},
