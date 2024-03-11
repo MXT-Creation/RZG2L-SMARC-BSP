@@ -1,0 +1,197 @@
+From 6ce9d94381967d0a43484c1753bdfb1e73f5c89d Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Thu, 27 Apr 2023 16:55:36 +0900
+Subject: [PATCH 1/2] Add dummy-input package
+
+---
+ .../dummy-input/dummy-input/Makefile          |  21 ++++
+ .../dummy-input/dummy-input/dummy-input.c     | 105 ++++++++++++++++++
+ .../dummy-input/dummy-input.service           |   9 ++
+ .../dummy-input/dummy-input_0.1.bb            |  19 ++++
+ 4 files changed, 154 insertions(+)
+ create mode 100644 meta-rz-common/recipes-graphics/dummy-input/dummy-input/Makefile
+ create mode 100644 meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.c
+ create mode 100644 meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.service
+ create mode 100644 meta-rz-common/recipes-graphics/dummy-input/dummy-input_0.1.bb
+
+diff --git a/meta-rz-common/recipes-graphics/dummy-input/dummy-input/Makefile b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/Makefile
+new file mode 100644
+index 00000000..b9575478
+--- /dev/null
++++ b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/Makefile
+@@ -0,0 +1,21 @@
++DESTDIR ?=
++PREFIX ?= /usr
++
++OBJS = \
++    dummy-input.o
++
++CFLAGS ?= -O2 -Wall -Werror
++LDFLAGS =
++
++.PHONY: all clean
++
++all: dummy-input
++
++install:
++	install -d ${DESTDIR}${PREFIX}/bin
++	install -m 0755 dummy-input ${DESTDIR}${PREFIX}/bin
++
++clean:
++	rm -f dummy-input $(OBJS)
++
++dummy-input: $(OBJS)
+diff --git a/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.c b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.c
+new file mode 100644
+index 00000000..d45c1c81
+--- /dev/null
++++ b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.c
+@@ -0,0 +1,105 @@
++#include <fcntl.h>
++#include <linux/uinput.h>
++#include <signal.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/signalfd.h>
++#include <unistd.h>
++
++
++int main(int argc, char *argv[])
++{
++	struct uinput_setup usetup;
++	struct signalfd_siginfo fdsi;
++	sigset_t mask;
++	ssize_t s;
++	int fd, sfd;
++	int opt;
++	int ret = 0;
++	int oflag = 0;
++
++	while ((opt = getopt(argc, argv, "ho")) != -1) {
++		switch (opt) {
++		case 'o':
++			oflag = 1;
++			break;
++		case 'h':
++		default:
++			fprintf(stderr, "Usage: %s [-o]\n", argv[0]);
++			exit(EXIT_FAILURE);
++		}
++	}
++
++	if (optind != argc) {
++		fprintf(stderr, "Unexpected argument\n");
++		exit(EXIT_FAILURE);
++	}
++
++	fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
++	if (fd == -1) {
++		perror("open(/dev/uinput)");
++		exit(EXIT_FAILURE);
++	}
++
++	if (oflag) {
++		/*
++		 * oneshot mode:
++		 * Create a dummy-input device then remove it immediately.
++		 */
++		sfd = -1;
++	} else {
++		sigemptyset(&mask);
++		sigaddset(&mask, SIGINT);
++		sigaddset(&mask, SIGQUIT);
++		sigaddset(&mask, SIGTERM);
++
++		if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
++			perror("sigprocmask");
++			exit(EXIT_FAILURE);
++		}
++
++		sfd = signalfd(-1, &mask, 0);
++		if (sfd == -1) {
++			perror("signalfd");
++			exit(EXIT_FAILURE);
++		}
++	}
++
++	/*
++	 * The ioctls below will enable the device that is about to be
++	 * created, to pass key events, in this case the space key.
++	 */
++	ioctl(fd, UI_SET_EVBIT, EV_KEY);
++	ioctl(fd, UI_SET_KEYBIT, KEY_SPACE);
++
++	memset(&usetup, 0, sizeof(usetup));
++	usetup.id.bustype = BUS_USB;
++	usetup.id.vendor = 0x1234; /* sample vendor */
++	usetup.id.product = 0x5678; /* sample product */
++	strcpy(usetup.name, "dummy-input device");
++
++	ioctl(fd, UI_DEV_SETUP, &usetup);
++	ioctl(fd, UI_DEV_CREATE);
++
++	if (sfd >= 0) {
++		for (;;) {
++			s = read(sfd, &fdsi, sizeof(fdsi));
++			if (s != sizeof(fdsi)) {
++				perror("read");
++				ret = EXIT_FAILURE;
++				break;
++			}
++
++			if (fdsi.ssi_signo == SIGINT || fdsi.ssi_signo == SIGQUIT ||
++			    fdsi.ssi_signo == SIGTERM) {
++				break;
++			}
++		}
++	}
++
++	ioctl(fd, UI_DEV_DESTROY);
++	close(fd);
++
++	return ret;
++}
+diff --git a/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.service b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.service
+new file mode 100644
+index 00000000..d976afb0
+--- /dev/null
++++ b/meta-rz-common/recipes-graphics/dummy-input/dummy-input/dummy-input.service
+@@ -0,0 +1,9 @@
++[Unit]
++Description=dummy-input
++
++[Service]
++Type=simple
++ExecStart=@BINDIR@/dummy-input
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/meta-rz-common/recipes-graphics/dummy-input/dummy-input_0.1.bb b/meta-rz-common/recipes-graphics/dummy-input/dummy-input_0.1.bb
+new file mode 100644
+index 00000000..ada948d0
+--- /dev/null
++++ b/meta-rz-common/recipes-graphics/dummy-input/dummy-input_0.1.bb
+@@ -0,0 +1,19 @@
++SUMMARY = "Dummy input device"
++SECTION = "libs"
++LICENSE = "CLOSED"
++
++inherit systemd
++
++SRC_URI = "file://."
++S = "${WORKDIR}"
++
++TARGET_CC_ARCH += "${LDFLAGS}"
++
++do_install() {
++        oe_runmake install DESTDIR=${D} PREFIX=${exec_prefix}
++        install -d ${D}${systemd_system_unitdir}
++        install -m 0644 ${S}/dummy-input.service ${D}${systemd_system_unitdir}
++        sed -i -e "s,@BINDIR@,${bindir},g" ${D}${systemd_system_unitdir}/dummy-input.service
++}
++
++SYSTEMD_SERVICE_${PN} = "dummy-input.service"
+-- 
+2.40.0
+

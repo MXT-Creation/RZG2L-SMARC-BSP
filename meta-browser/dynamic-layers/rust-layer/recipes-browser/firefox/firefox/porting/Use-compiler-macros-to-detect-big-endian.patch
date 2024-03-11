@@ -1,0 +1,68 @@
+From: Mike Hommey <mh@glandium.org>
+Date: Wed, 15 Feb 2023 08:44:19 +0900
+Subject: Use compiler macros to detect big endian
+
+Both clang and GCC define endianness as builtin defines.
+---
+ third_party/wasm2c/src/common.h                  | 8 ++++++++
+ third_party/wasm2c/src/prebuilt/wasm2c.include.c | 8 ++++++++
+ third_party/wasm2c/src/wasm2c.c.tmpl             | 8 ++++++++
+ 3 files changed, 24 insertions(+)
+
+diff --git a/third_party/wasm2c/src/common.h b/third_party/wasm2c/src/common.h
+index de5e44a..c4eb760 100644
+--- a/third_party/wasm2c/src/common.h
++++ b/third_party/wasm2c/src/common.h
+@@ -103,6 +103,14 @@
+ #define PRIaddress PRIu64
+ #define PRIoffset PRIzx
+ 
++#ifndef WABT_BIG_ENDIAN
++#  if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++#    define WABT_BIG_ENDIAN 1
++#  elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#    define WABT_BIG_ENDIAN 0
++#  endif
++#endif
++
+ namespace wabt {
+ #if WABT_BIG_ENDIAN
+   inline void MemcpyEndianAware(void *dst, const void *src, size_t dsize, size_t ssize, size_t doff, size_t soff, size_t len) {
+diff --git a/third_party/wasm2c/src/prebuilt/wasm2c.include.c b/third_party/wasm2c/src/prebuilt/wasm2c.include.c
+index d1ca365..e293c53 100644
+--- a/third_party/wasm2c/src/prebuilt/wasm2c.include.c
++++ b/third_party/wasm2c/src/prebuilt/wasm2c.include.c
+@@ -107,6 +107,14 @@ const char SECTION_NAME(declarations)[] =
+ "#  define MEM_ACCESS_REF(mem, addr) (char*) addr\n"
+ "#endif\n"
+ "\n"
++"#ifndef WABT_BIG_ENDIAN\n"
++"#  if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__\n"
++"#    define WABT_BIG_ENDIAN 1\n"
++"#  elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__\n"
++"#    define WABT_BIG_ENDIAN 0\n"
++"#  endif\n"
++"#endif\n"
++"\n"
+ "#if WABT_BIG_ENDIAN\n"
+ "static inline void load_data(void *dest, const void *src, size_t n) {\n"
+ "  size_t i = 0;\n"
+diff --git a/third_party/wasm2c/src/wasm2c.c.tmpl b/third_party/wasm2c/src/wasm2c.c.tmpl
+index 0c6dbff..6a4e5d6 100644
+--- a/third_party/wasm2c/src/wasm2c.c.tmpl
++++ b/third_party/wasm2c/src/wasm2c.c.tmpl
+@@ -104,6 +104,14 @@ void WASM2C_MALLOC_FAIL_CALLBACK(u32 ptr_size);
+ #  define MEM_ACCESS_REF(mem, addr) (char*) addr
+ #endif
+ 
++#ifndef WABT_BIG_ENDIAN
++#  if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++#    define WABT_BIG_ENDIAN 1
++#  elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#    define WABT_BIG_ENDIAN 0
++#  endif
++#endif
++
+ #if WABT_BIG_ENDIAN
+ static inline void load_data(void *dest, const void *src, size_t n) {
+   size_t i = 0;

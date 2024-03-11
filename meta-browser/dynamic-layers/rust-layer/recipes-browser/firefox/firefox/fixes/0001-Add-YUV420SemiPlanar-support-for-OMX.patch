@@ -1,0 +1,97 @@
+From a45a1e3ade5edb066cd1cddf6942e45758a34e26 Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Fri, 4 Feb 2022 14:54:14 +0900
+Subject: [PATCH 1/2] Add YUV420SemiPlanar support for OMX
+
+---
+ dom/media/platforms/omx/OmxDataDecoder.cpp | 65 +++++++++++++++-------
+ 1 file changed, 44 insertions(+), 21 deletions(-)
+
+diff --git a/dom/media/platforms/omx/OmxDataDecoder.cpp b/dom/media/platforms/omx/OmxDataDecoder.cpp
+index dbb739355f2c..b7f4f7069fb5 100644
+--- a/dom/media/platforms/omx/OmxDataDecoder.cpp
++++ b/dom/media/platforms/omx/OmxDataDecoder.cpp
+@@ -906,12 +906,6 @@ already_AddRefed<VideoData> MediaDataHelper::CreateYUV420VideoData(
+   int32_t width = mTrackInfo->GetAsVideoInfo()->mImage.width;
+   int32_t height = mTrackInfo->GetAsVideoInfo()->mImage.height;
+ 
+-  // TODO: convert other formats to YUV420.
+-  if (mOutputPortDef.format.video.eColorFormat !=
+-      OMX_COLOR_FormatYUV420Planar) {
+-    return nullptr;
+-  }
+-
+   size_t yuv420p_y_size = stride * slice_height;
+   size_t yuv420p_u_size = ((stride + 1) / 2) * ((slice_height + 1) / 2);
+   uint8_t* yuv420p_y = yuv420p_buffer;
+@@ -919,23 +913,52 @@ already_AddRefed<VideoData> MediaDataHelper::CreateYUV420VideoData(
+   uint8_t* yuv420p_v = yuv420p_u + yuv420p_u_size;
+ 
+   VideoData::YCbCrBuffer b;
+-  b.mPlanes[0].mData = yuv420p_y;
+-  b.mPlanes[0].mWidth = width;
+-  b.mPlanes[0].mHeight = height;
+-  b.mPlanes[0].mStride = stride;
+-  b.mPlanes[0].mSkip = 0;
+ 
+-  b.mPlanes[1].mData = yuv420p_u;
+-  b.mPlanes[1].mWidth = (width + 1) / 2;
+-  b.mPlanes[1].mHeight = (height + 1) / 2;
+-  b.mPlanes[1].mStride = (stride + 1) / 2;
+-  b.mPlanes[1].mSkip = 0;
++  // TODO: convert other formats to YUV420.
++  if (mOutputPortDef.format.video.eColorFormat ==
++      OMX_COLOR_FormatYUV420Planar) {
++    b.mPlanes[0].mData = yuv420p_y;
++    b.mPlanes[0].mWidth = width;
++    b.mPlanes[0].mHeight = height;
++    b.mPlanes[0].mStride = stride;
++    b.mPlanes[0].mSkip = 0;
+ 
+-  b.mPlanes[2].mData = yuv420p_v;
+-  b.mPlanes[2].mWidth = (width + 1) / 2;
+-  b.mPlanes[2].mHeight = (height + 1) / 2;
+-  b.mPlanes[2].mStride = (stride + 1) / 2;
+-  b.mPlanes[2].mSkip = 0;
++    b.mPlanes[1].mData = yuv420p_u;
++    b.mPlanes[1].mWidth = (width + 1) / 2;
++    b.mPlanes[1].mHeight = (height + 1) / 2;
++    b.mPlanes[1].mStride = (stride + 1) / 2;
++    b.mPlanes[1].mSkip = 0;
++
++    b.mPlanes[2].mData = yuv420p_v;
++    b.mPlanes[2].mWidth = (width + 1) / 2;
++    b.mPlanes[2].mHeight = (height + 1) / 2;
++    b.mPlanes[2].mStride = (stride + 1) / 2;
++    b.mPlanes[2].mSkip = 0;
++  } else if (mOutputPortDef.format.video.eColorFormat ==
++             OMX_COLOR_FormatYUV420SemiPlanar) {
++    b.mPlanes[0].mData = yuv420p_y;
++    b.mPlanes[0].mWidth = width;
++    b.mPlanes[0].mHeight = height;
++    b.mPlanes[0].mStride = stride;
++    b.mPlanes[0].mSkip = 0;
++
++    b.mPlanes[1].mData = yuv420p_y + yuv420p_y_size;
++    b.mPlanes[1].mWidth = (width + 1) / 2;
++    b.mPlanes[1].mHeight = (height + 1) / 2;
++    b.mPlanes[1].mStride = stride;
++    b.mPlanes[1].mSkip = 1;
++
++    b.mPlanes[2].mData = yuv420p_y + yuv420p_y_size + 1;
++    b.mPlanes[2].mWidth = (width + 1) / 2;
++    b.mPlanes[2].mHeight = (height + 1) / 2;
++    b.mPlanes[2].mStride = stride;
++    b.mPlanes[2].mSkip = 1;
++  } else {
++      MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug,
++              ("mOutputPortDef.format.video.eColorFormat = %d",
++               mOutputPortDef.format.video.eColorFormat));
++    return nullptr;
++  }
+ 
+   VideoInfo info(*mTrackInfo->GetAsVideoInfo());
+ 
+-- 
+2.34.1
+

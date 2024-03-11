@@ -1,0 +1,22 @@
+From: Mike Hommey <mh@glandium.org>
+Date: Mon, 15 Aug 2022 15:41:15 +0900
+Subject: Add missing webrtc directory for ppc64el (bz#1775202)
+
+---
+ third_party/libwebrtc/moz.build | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/third_party/libwebrtc/moz.build b/third_party/libwebrtc/moz.build
+index 8579f8bb3622..fc80100ff947 100644
+--- a/third_party/libwebrtc/moz.build
++++ b/third_party/libwebrtc/moz.build
+@@ -520,7 +520,8 @@ if CONFIG["CPU_ARCH"] == "ppc64" and CONFIG["OS_TARGET"] == "Linux":
+         "/third_party/libwebrtc/api/audio_codecs/isac/audio_decoder_isac_float_gn",
+         "/third_party/libwebrtc/api/audio_codecs/isac/audio_encoder_isac_float_gn",
+         "/third_party/libwebrtc/modules/audio_coding/isac_c_gn",
+-        "/third_party/libwebrtc/modules/audio_coding/isac_gn"
++        "/third_party/libwebrtc/modules/audio_coding/isac_gn",
++        "/third_party/libwebrtc/modules/desktop_capture/primitives_gn",
+     ]
+ 
+ if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":

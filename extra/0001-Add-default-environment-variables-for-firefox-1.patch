@@ -1,0 +1,53 @@
+From 40a1d3bbbba5b7d2d0d12fab8a312bf71181f189 Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Thu, 27 Apr 2023 16:56:06 +0900
+Subject: [PATCH 2/2] Add default environment variables for firefox
+
+---
+ .../images/core-image-weston.bbappend         |  2 ++
+ .../images/firefox-environment.inc            | 23 +++++++++++++++++++
+ 2 files changed, 25 insertions(+)
+ create mode 100644 meta-rz-common/recipes-graphics/images/firefox-environment.inc
+
+diff --git a/meta-rz-common/recipes-graphics/images/core-image-weston.bbappend b/meta-rz-common/recipes-graphics/images/core-image-weston.bbappend
+index 64fbeaa1..a616971b 100644
+--- a/meta-rz-common/recipes-graphics/images/core-image-weston.bbappend
++++ b/meta-rz-common/recipes-graphics/images/core-image-weston.bbappend
+@@ -1,3 +1,5 @@
+ require include/core-image-renesas-base.inc
+ require include/core-image-renesas-mmp.inc
+ require include/core-image-bsp.inc
++
++include firefox-environment.inc
+diff --git a/meta-rz-common/recipes-graphics/images/firefox-environment.inc b/meta-rz-common/recipes-graphics/images/firefox-environment.inc
+new file mode 100644
+index 00000000..8400d331
+--- /dev/null
++++ b/meta-rz-common/recipes-graphics/images/firefox-environment.inc
+@@ -0,0 +1,23 @@
++ROOTFS_POSTPROCESS_COMMAND += 'set_firefox_environment;'
++set_firefox_environment() {
++    if [ -e ${IMAGE_ROOTFS}/${libdir}/firefox ] || [ -e ${IMAGE_ROOTFS}/${libdir}/webviewer ]; then
++        cat <<EOF >> ${IMAGE_ROOTFS}/etc/environment
++MOZ_ENABLE_WAYLAND=1
++MOZ_WAYLAND_GL_LIBRARY=libGLESv2.so
++MOZ_WEBRENDER=1
++EOF
++
++        case "${MACHINE}" in
++            ek874)
++                echo 'MOZ_GLXTEST_RESULT=VENDOR\\nProprietary\\nRENDERER\\nHardware\\nVERSION\\nN/A\\nTFP\\nTRUE\\nSCREEN_INFO\\n1280x720:1;\\nTEST_TYPE\\nEGL' >> ${IMAGE_ROOTFS}/etc/environment
++                ;;
++            *rzg2l*)
++                echo 'MOZ_GLXTEST_RESULT=VENDOR\\nARM\\nRENDERER\\nMali-G31\\nVERSION\\nOpenGL ES 3.2\\nTFP\\nTRUE\\nSCREEN_INFO\\n1920x1080:1;\\nTEST_TYPE\\nEGL' >> ${IMAGE_ROOTFS}/etc/environment
++                echo 'MOZ_OMX_RZG2L=1' >> ${IMAGE_ROOTFS}/etc/environment
++                ;;
++            *)
++                echo 'MOZ_GLXTEST_RESULT=VENDOR\\nProprietary\\nRENDERER\\nHardware\\nVERSION\\nN/A\\nTFP\\nTRUE\\nSCREEN_INFO\\n1920x1080:1;\\nTEST_TYPE\\nEGL' >> ${IMAGE_ROOTFS}/etc/environment
++                ;;
++        esac
++    fi
++}
+-- 
+2.40.0
+

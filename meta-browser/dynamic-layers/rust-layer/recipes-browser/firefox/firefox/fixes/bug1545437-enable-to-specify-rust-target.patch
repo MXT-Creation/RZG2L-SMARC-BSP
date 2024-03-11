@@ -1,0 +1,118 @@
+diff --git a/build/moz.configure/rust.configure b/build/moz.configure/rust.configure
+index cd77d72bb77b..29acaacb9b89 100644
+--- a/build/moz.configure/rust.configure
++++ b/build/moz.configure/rust.configure
+@@ -396,7 +396,7 @@ def detect_rustc_target(
+ @imports(_from="tempfile", _import="mkstemp")
+ @imports(_from="textwrap", _import="dedent")
+ @imports(_from="mozbuild.configure.util", _import="LineIO")
+-def assert_rust_compile(host_or_target, rustc_target, rustc):
++def assert_rust_compile(host_or_target, rustc_target, rustc, libdir=None):
+     # Check to see whether our rustc has a reasonably functional stdlib
+     # for our chosen target.
+     target_arg = "--target=" + rustc_target
+@@ -417,6 +417,13 @@ def assert_rust_compile(host_or_target, rustc_target, rustc):
+             "--crate-type",
+             "staticlib",
+             target_arg,
++        ]
++        if libdir:
++            cmd += [
++                "-L",
++                libdir,
++            ]
++        cmd += [
+             "-o",
+             out_path,
+             in_path,
+@@ -445,8 +452,54 @@ def assert_rust_compile(host_or_target, rustc_target, rustc):
+         os.remove(out_path)
+ 
+ 
++option(env='RUST_HOST',
++       nargs=1,
++       help='Define the system type for Rust performing the build')
++
++@depends('RUST_HOST')
++@checking('rust host', lambda host: host)
++def rust_host_env(value):
++    if value:
++        return value[0]
++
++
++option(env='RUST_TARGET',
++       nargs=1,
++       help='Define the system type for Rust where the resulting executables will be used')
++
++@depends('RUST_TARGET')
++@checking('rust target', lambda target: target)
++def rust_target_env(value):
++    if value:
++        return value[0]
++
++
++option(env='RUST_HOST_LIBDIR',
++       nargs=1,
++       help='Path to the std crate for host')
++
++@depends('RUST_HOST_LIBDIR')
++@checking('rust host libdir', lambda libdir: libdir)
++def rust_host_libdir(value):
++    if value:
++        return value[0]
++
++
++option(env='RUST_TARGET_LIBDIR',
++       nargs=1,
++       help='Path to the std crate for target')
++
++@depends('RUST_TARGET_LIBDIR')
++@checking('rust target libdir', lambda libdir: libdir)
++def rust_target_libdir(value):
++    if value:
++        return value[0]
++
++
+ @depends(
+     rustc,
++    rust_host_env,
++    rust_host_libdir,
+     host,
+     host_c_compiler,
+     rustc_info.host,
+@@ -457,8 +510,13 @@ def assert_rust_compile(host_or_target, rustc_target, rustc):
+ @checking("for rust host triplet")
+ @imports(_from="textwrap", _import="dedent")
+ def rust_host_triple(
+-    rustc, host, compiler_info, rustc_host, rust_supported_targets, arm_target
++    rustc, host_env, host_libdir, host, compiler_info, rustc_host,
++    rust_supported_targets, arm_target
+ ):
++    if host_env:
++        assert_rust_compile(host, host_env, rustc, host_libdir)
++        return host_env
++
+     rustc_target = detect_rustc_target(
+         host, compiler_info, arm_target, rust_supported_targets
+     )
+@@ -489,12 +547,18 @@ def rust_host_triple(
+ 
+ 
+ @depends(
+-    rustc, target, c_compiler, rust_supported_targets, arm_target, when=rust_compiler
++    rustc, rust_target_env, rust_target_libdir, target, c_compiler,
++    rust_supported_targets, arm_target, when=rust_compiler
+ )
+ @checking("for rust target triplet")
+ def rust_target_triple(
+-    rustc, target, compiler_info, rust_supported_targets, arm_target
++    rustc, target_env, target_libdir, target, compiler_info,
++    rust_supported_targets, arm_target
+ ):
++    if target_env:
++        assert_rust_compile(target, target_env, rustc, target_libdir)
++        return target_env
++
+     rustc_target = detect_rustc_target(
+         target, compiler_info, arm_target, rust_supported_targets
+     )

@@ -1,0 +1,44 @@
+From: Emanuele Rocca <ema@debian.org>
+Date: Sat, 18 Mar 2023 06:48:32 +0900
+Subject: Bug 1822827 - Remove explicit NEON flags from skia build
+
+While Firefox builds for Android ARMv7 don't support non-NEON
+processors, downstreams (including non-Android ones) may still want to
+support them.
+
+Because those Firefox builds don't support non-NEON processors, the NEON
+flags are actually already passed globally, and they don't need to be
+explicitly added. NEON_FLAGS is actually only meant to be used for
+sources that specifically need NEON support even when the target doesn't
+support it, for, e.g. specialized code behind runtime CPU detection.
+---
+ gfx/skia/generate_mozbuild.py | 2 --
+ gfx/skia/moz.build            | 2 --
+ 2 files changed, 4 deletions(-)
+
+diff --git a/gfx/skia/generate_mozbuild.py b/gfx/skia/generate_mozbuild.py
+index 5e0fd17..580f092 100755
+--- a/gfx/skia/generate_mozbuild.py
++++ b/gfx/skia/generate_mozbuild.py
+@@ -59,8 +59,6 @@ if CONFIG['INTEL_ARCHITECTURE']:
+     SOURCES['skia/src/opts/SkOpts_sse42.cpp'].flags += ['-msse4.2']
+     SOURCES['skia/src/opts/SkOpts_avx.cpp'].flags += ['-mavx']
+     SOURCES['skia/src/opts/SkOpts_hsw.cpp'].flags += ['-mavx2', '-mf16c', '-mfma']
+-elif CONFIG['CPU_ARCH'] == 'arm' and CONFIG['CC_TYPE'] in ('clang', 'gcc'):
+-    CXXFLAGS += CONFIG['NEON_FLAGS']
+ elif CONFIG['CPU_ARCH'] == 'aarch64' and CONFIG['CC_TYPE'] in ('clang', 'gcc'):
+     SOURCES['skia/src/opts/SkOpts_crc32.cpp'].flags += ['-march=armv8-a+crc']
+ 
+diff --git a/gfx/skia/moz.build b/gfx/skia/moz.build
+index 524bd28..5fb7174 100755
+--- a/gfx/skia/moz.build
++++ b/gfx/skia/moz.build
+@@ -455,8 +455,6 @@ if CONFIG['INTEL_ARCHITECTURE']:
+     SOURCES['skia/src/opts/SkOpts_sse42.cpp'].flags += ['-msse4.2']
+     SOURCES['skia/src/opts/SkOpts_avx.cpp'].flags += ['-mavx']
+     SOURCES['skia/src/opts/SkOpts_hsw.cpp'].flags += ['-mavx2', '-mf16c', '-mfma']
+-elif CONFIG['CPU_ARCH'] == 'arm' and CONFIG['CC_TYPE'] in ('clang', 'gcc'):
+-    CXXFLAGS += CONFIG['NEON_FLAGS']
+ elif CONFIG['CPU_ARCH'] == 'aarch64' and CONFIG['CC_TYPE'] in ('clang', 'gcc'):
+     SOURCES['skia/src/opts/SkOpts_crc32.cpp'].flags += ['-march=armv8-a+crc']
+ 

@@ -1,0 +1,35 @@
+From 5484d47e938be804c5fb67754782edf77b1dccbf Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Fri, 4 Feb 2022 15:04:23 +0900
+Subject: [PATCH 2/2] omx: Add temporary workaround for RZ/G2L
+
+---
+ dom/media/platforms/omx/OmxPlatformLayer.cpp | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/dom/media/platforms/omx/OmxPlatformLayer.cpp b/dom/media/platforms/omx/OmxPlatformLayer.cpp
+index dc3ccc0979ab..d4d72e974c20 100644
+--- a/dom/media/platforms/omx/OmxPlatformLayer.cpp
++++ b/dom/media/platforms/omx/OmxPlatformLayer.cpp
+@@ -206,11 +206,17 @@ class OmxCommonVideoConfig : public OmxVideoConfig {
+       def.format.video.nStride = aInfo.mImage.width;
+       def.format.video.nSliceHeight = aInfo.mImage.height;
+ 
++      if (getenv("MOZ_OMX_RZG2L")) {
++        while ((def.format.video.nStride * def.format.video.nSliceHeight) % 512 != 0) {
++            def.format.video.nStride++;
++        }
++      }
++
+       if (def.eDir == OMX_DirInput) {
+         def.format.video.eCompressionFormat = aOmx.CompressionFormat();
+         def.format.video.eColorFormat = OMX_COLOR_FormatUnused;
+         if (def.nBufferSize < MIN_VIDEO_INPUT_BUFFER_SIZE) {
+-          def.nBufferSize = aInfo.mImage.width * aInfo.mImage.height;
++          def.nBufferSize = def.format.video.nStride * def.format.video.nSliceHeight;
+           LOG("Change input buffer size to %lu", def.nBufferSize);
+         }
+       } else {
+-- 
+2.34.1
+

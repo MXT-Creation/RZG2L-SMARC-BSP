@@ -1,0 +1,38 @@
+From 028bfda953b628464f5b514369f9ad4cda5702a2 Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Fri, 15 Oct 2021 14:17:53 +0900
+Subject: [PATCH] Add MOZ_GLXTEST_RESULT environment variable
+
+If this variable is set, glxtest execution is skipped and return its
+value as the glxtest result.
+
+glxtest works well for MESA and compatible OpenGL libraries but it does
+not work for some proprietary libraries.  This fix is simple workaround
+for some problematic libraries.
+---
+ toolkit/xre/glxtest.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/toolkit/xre/glxtest.cpp b/toolkit/xre/glxtest.cpp
+index 0cb7edb058a4..4d2e5ed8cf67 100644
+--- a/toolkit/xre/glxtest.cpp
++++ b/toolkit/xre/glxtest.cpp
+@@ -23,6 +23,7 @@
+ #include <cstdlib>
+ #include <dlfcn.h>
+ #include <fcntl.h>
++#include <regex>
+ #include <unistd.h>
+ 
+ #include "mozilla/Unused.h"
+@@ -940,6 +941,10 @@ int childgltest() {
+   // Get a list of all GPUs from the PCI bus.
+   int pci_count = get_pci_status();
+ 
++  char *glxtest_result = getenv("MOZ_GLXTEST_RESULT");
++  if (glxtest_result) {
++    record_value(std::regex_replace(glxtest_result, std::regex("\\\\n"), "\n").c_str());
++  } else
+ #ifdef MOZ_WAYLAND
+   if (IsWaylandEnabled()) {
+     wayland_egltest();

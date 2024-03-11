@@ -1,0 +1,26 @@
+From d77f3d4a676b2edf023c98d6debd7d5acb2cd9ba Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Wed, 21 Jun 2023 15:11:50 +0900
+Subject: [PATCH] Add MOZ_GL_DISABLE_ANDROID_NATIVE_FENCE_SYNC
+
+---
+ gfx/gl/GLLibraryEGL.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/gfx/gl/GLLibraryEGL.cpp b/gfx/gl/GLLibraryEGL.cpp
+index c7966bff1307..6f1eaf495674 100644
+--- a/gfx/gl/GLLibraryEGL.cpp
++++ b/gfx/gl/GLLibraryEGL.cpp
+@@ -742,7 +742,8 @@ EglDisplay::EglDisplay(const PrivateUseOnly&, GLLibraryEGL& lib,
+   // but it is one.
+   if (mLib->mSymbols.fDupNativeFenceFDANDROID) {
+     mAvailableExtensions[UnderlyingValue(
+-        EGLExtension::ANDROID_native_fence_sync)] = true;
++        EGLExtension::ANDROID_native_fence_sync)] =
++        !getenv("MOZ_GL_DISABLE_ANDROID_NATIVE_FENCE_SYNC");
+   }
+ }
+ 
+-- 
+2.40.1
+

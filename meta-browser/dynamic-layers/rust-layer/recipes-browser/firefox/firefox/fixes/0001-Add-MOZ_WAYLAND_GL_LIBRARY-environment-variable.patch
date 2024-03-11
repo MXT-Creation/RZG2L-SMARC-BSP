@@ -1,0 +1,35 @@
+From d54cae58afcba14f79d62ed33050b4e38296ca11 Mon Sep 17 00:00:00 2001
+From: INAJIMA Daisuke <inajima@soum.co.jp>
+Date: Fri, 19 Nov 2021 17:14:54 +0900
+Subject: [PATCH] Add MOZ_WAYLAND_GL_LIBRARY environment variable
+
+It is used to specify a GL library when firefox uses EGL (Wayland)
+backend.
+
+By default, firefox uses libGL.so first and uses libGLESv2.so second.
+But some platform (ex. RZ/G2) need to use libGLESv2.
+---
+ gfx/gl/GLLibraryEGL.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/gfx/gl/GLLibraryEGL.cpp b/gfx/gl/GLLibraryEGL.cpp
+index 94371ec92234..3ca15d0439db 100644
+--- a/gfx/gl/GLLibraryEGL.cpp
++++ b/gfx/gl/GLLibraryEGL.cpp
+@@ -398,6 +398,13 @@ bool GLLibraryEGL::Init(nsACString* const out_failureId) {
+   }
+ #  endif
+ 
++  char *gl_lib = getenv("MOZ_WAYLAND_GL_LIBRARY");
++  if (gl_lib) {
++    if (!mGLLibrary) {
++      mGLLibrary = PR_LoadLibrary(gl_lib);
++    }
++  }
++
+ #  ifdef APITRACE_LIB
+   if (!mGLLibrary) {
+     mGLLibrary = PR_LoadLibrary(APITRACE_LIB);
+-- 
+2.34.0
+
