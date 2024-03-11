@@ -1,0 +1,9 @@
+[Unit]
+Description=dummy-input
+
+[Service]
+Type=simple
+ExecStart=@BINDIR@/dummy-input
+
+[Install]
+WantedBy=multi-user.target
